@@ -62,15 +62,30 @@ else
   exit 1
 fi
 
+
+# Validation des entrées utilisateur pour Cloud-Init
+while [ -z "$CI_USER" ]; do
+  read -p "Entrez le nom d'utilisateur pour Cloud-Init (par défaut : debian) : " CI_USER
+  CI_USER=${CI_USER:-debian}
+done
+
+while [ -z "$CI_PASSWORD" ]; do
+  read -s -p "Entrez le mot de passe pour Cloud-Init : " CI_PASSWORD
+  echo ""
+  if [ -z "$CI_PASSWORD" ]; then
+    echo "Le mot de passe ne peut pas être vide. Veuillez réessayer."
+  fi
+done
+
+while [ -z "$CI_NETCONFIG" ]; do
+  read -p "Entrez la configuration réseau pour Cloud-Init (ex : dhcp ou IP statique) : " CI_NETCONFIG
+  CI_NETCONFIG=${CI_NETCONFIG:-dhcp}
+  if [ -z "$CI_NETCONFIG" ]; then
+    echo "La configuration réseau ne peut pas être vide. Veuillez réessayer."
+  fi
+done
+
 # Configuration Cloud-Init
-read -p "Entrez le nom d'utilisateur pour Cloud-Init (par défaut : debian) : " CI_USER
-CI_USER=${CI_USER:-debian}
-
-read -s -p "Entrez le mot de passe pour Cloud-Init : " CI_PASSWORD
-echo ""
-read -p "Entrez la configuration réseau pour Cloud-Init (ex : dhcp) : " CI_NETCONFIG
-CI_NETCONFIG=${CI_NETCONFIG:-dhcp}
-
 echo "Configuration des paramètres Cloud-Init..."
 if qm set "${VM_ID}" --ciuser "${CI_USER}" --cipassword "${CI_PASSWORD}" --ipconfig0 ip="${CI_NETCONFIG}"; then
   echo "Cloud-Init configuré avec succès."
@@ -86,6 +101,14 @@ if qm template "${VM_ID}"; then
 else
   echo "Échec de la conversion en template."
   exit 1
+fi
+
+# Suppression de l'image téléchargée
+echo "Suppression de l'image téléchargée pour libérer de l'espace..."
+if rm -f "${PROXMOX_IMAGE_PATH}${CLOUD_IMAGE}"; then
+  echo "Image QCOW2 supprimée avec succès."
+else
+  echo "Échec de la suppression de l'image QCOW2."
 fi
 
 echo "Script terminé avec succès. Le template Cloud-Init est prêt à être utilisé."
